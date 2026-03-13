@@ -1,0 +1,382 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JCE Virtual Lab - Laser Experiment</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root { --jce-blue: #150080; --laser-red: #ff0000; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--bg); color: #333; padding: 20px; }
+        
+        .header { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; border-bottom: 5px solid var(--jce-blue); margin-bottom: 25px; }
+        .logo { width: 90px; float: left; }
+        .exp-title { font-size: 1.8rem; font-weight: 800; color: #000; margin: 10px 0; text-transform: uppercase; }
+
+        .sim-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
+        .sim-card { background: #000; border-radius: 12px; border: 3px solid #444; position: relative; overflow: hidden; height: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .sim-label { position: absolute; top: 12px; left: 12px; color: #0f0; font-family: 'Courier New', monospace; font-size: 13px; background: rgba(0,0,0,0.7); padding: 5px 12px; border: 1px solid #0f0; border-radius: 4px; z-index: 10; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        .data-overlay { position: absolute; bottom: 15px; right: 15px; background: rgba(0, 255, 0, 0.1); border: 1px solid #0f0; color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; border-radius: 5px; pointer-events: none; }
+
+        .control-panel { background: #212529; padding: 20px; border-radius: 10px; display: flex; justify-content: space-around; align-items: center; color: white; margin-bottom: 25px; border-top: 4px solid var(--jce-blue); }
+        .slider-box { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        input[type="range"] { width: 220px; accent-color: var(--laser-red); cursor: pointer; }
+        .val-text { color: #0f0; font-weight: bold; font-family: monospace; }
+
+        .panel { background: white; padding: 30px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        h3 { color: var(--jce-blue); border-left: 5px solid var(--jce-blue); padding-left: 15px; margin-top: 0; margin-bottom: 15px; }
+        
+        .theory-content { line-height: 1.7; color: #444; text-align: justify; }
+        .formula-box { background: #f0f4ff; padding: 15px; border-radius: 8px; border: 1px solid #d0d7de; margin: 15px 0; text-align: center; }
+
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .data-table th, .data-table td { border: 1px solid #000; padding: 10px; text-align: center; }
+        .header-gray { background: #efefef; font-weight: bold; font-size: 14px; }
+        input[type="number"] { width: 75px; padding: 5px; text-align: center; border: 1px solid #ccc; font-weight: bold; }
+        .auto-res { background: #f0f4ff; font-weight: bold; color: var(--jce-blue); border: 1px solid var(--jce-blue); }
+
+        .quiz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; padding: 10px; }
+        .quiz-item { background: #fff; padding: 20px; border-radius: 10px; border: 1px solid #eee; border-left: 5px solid var(--jce-blue); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .quiz-item p { font-weight: 600; margin-top: 0; margin-bottom: 15px; color: #333; line-height: 1.4; }
+        .option-container { display: flex; flex-direction: column; gap: 10px; }
+        .option { display: flex; align-items: center; cursor: pointer; padding: 8px 12px; border-radius: 5px; transition: background 0.2s; font-size: 0.95rem; }
+        .option:hover { background: #f0f4ff; }
+        .option input { margin-right: 12px; cursor: pointer; }
+
+        #certificate { display: none; width: 850px; padding: 40px; border: 15px double var(--jce-blue); margin: 30px auto; text-align: center; background: #fff; box-shadow: 0 0 30px rgba(0,0,0,0.2); }
+        .cert-verify { font-family: 'Courier New', monospace; font-size: 10px; color: #777; margin-top: 20px; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px; }
+        .sig-block { display: flex; justify-content: space-around; margin-top: 40px; align-items: flex-end; }
+        
+        .btn { padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; margin: 5px; }
+        .btn-green { background: #28a745; color: white; }
+        .btn-blue { background: var(--jce-blue); color: white; width: 100%; font-size: 1.1rem; margin-top: 30px; }
+        .btn-red { background: #dc3545; color: white; }
+        .btn-gold { background: #d4af37; color: black; margin-top: 15px; }
+
+        .faculty-footer { text-align: center; margin-top: 30px; padding: 15px; font-weight: bold; color: var(--jce-blue); border-top: 1px solid #ddd; }
+        
+        @media print { 
+            body { padding: 0; background: white; }
+            .no-print { display: none !important; } 
+            #certificate { display: block !important; border: 10px double var(--jce-blue); margin: 0; width: 100%; box-shadow: none; } 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header no-print">
+        <img src="college logo.jpg" class="logo" alt="JCE Logo">
+        <div style="font-size: 14px; color: var(--jce-blue);">Jain College of Engineering, Belagavi</div>
+        <h1 class="exp-title">Determination of wavelength of LASER using Diffraction Grating</h1>
+    </div>
+
+    <div class="sim-row no-print">
+        <div class="sim-card">
+            <div class="sim-label">DYNAMIC LABORATORY BENCH VIEW</div>
+            <canvas id="labCanvas"></canvas>
+        </div>
+        <div class="sim-card">
+            <div class="sim-label">SCREEN FRONT MEASUREMENT (cm scale)</div>
+            <div class="data-overlay" id="autoRecorder">
+                <b>AUTO RECORDER (cm)</b><br>
+                n=1: R=---, L=---<br>
+                n=2: R=---, L=---<br>
+                n=3: R=---, L=---
+            </div>
+            <canvas id="screenCanvas"></canvas>
+        </div>
+    </div>
+
+    <div class="control-panel no-print">
+        <div class="slider-box">
+            <label>Distance \(D\) (Grating to Screen): <span id="vD" class="val-text">20</span> cm</label>
+            <input type="range" id="sD" min="10" max="100" value="20" oninput="runSim(); autoCalculateAll();">
+        </div>
+        <div class="slider-box">
+            <label>Grating \(N\): <span id="vN" class="val-text">500</span> LPI</label>
+            <input type="range" id="sN" min="100" max="1000" step="100" value="500" oninput="runSim(); autoCalculateAll();">
+        </div>
+        <div class="slider-box">
+            <label>Laser Wavelength: <span id="vW" class="val-text">632</span> nm</label>
+            <input type="range" id="sW" min="400" max="750" value="632" oninput="runSim(); autoCalculateAll();">
+        </div>
+    </div>
+
+    <div class="panel no-print">
+        <h3>I. Comprehensive Theory</h3>
+        <div class="theory-content">
+            
+            <p>
+                <b>Principle:</b> The experiment is based on the phenomenon of <b>Fraunhofer Diffraction</b>. When a monochromatic, coherent beam of light from a Laser source strikes a diffraction grating (a glass plate with several thousand parallel lines per inch), the light is diffracted. According to Huygens' Principle, each slit acts as a source of secondary wavelets.
+            </p>
+            <p>
+                <b>The Grating Equation:</b> Constructive interference occurs when the path difference between light rays from adjacent slits is an integral multiple of the wavelength. This is mathematically expressed as:
+            </p>
+            <div class="formula-box">
+                $$n\lambda = d \sin \theta_n$$
+            </div>
+            <p>
+                <b>Key Parameters:</b>
+                <ul>
+                    <li><b>Grating Constant (\(d\)):</b> The distance between two successive slits. If \(N\) is the number of lines per inch, then \(d = \frac{2.54}{N} \text{ cm}\).</li>
+                    <li><b>Order of Diffraction (\(n\)):</b> The integer representing the bright spot sequence (e.g., 1st, 2nd order).</li>
+                    <li><b>Diffraction Angle (\(\theta_n\)):</b> The angle at which the \(n^{th}\) order beam is deviated from the original path.</li>
+                    <li><b>Small Angle Approximation:</b> In this setup, \(\sin \theta_n \approx \tan \theta_n = \frac{X_m}{D}\), where \(X_m\) is the distance of the spot from the center and \(D\) is the distance between grating and screen.</li>
+                </ul>
+            </p>
+        </div>
+    </div>
+
+    <div class="panel no-print">
+        <h3>II. Experimental Procedure</h3>
+        <div class="theory-content">
+            <ol>
+                <li><b>Alignment:</b> Place the Laser source and the diffraction grating on the optical bench. Ensure the Laser beam hits the grating perpendicularly (normal incidence).</li>
+                <li><b>Setup Geometry:</b> Adjust the <b>Distance \(D\)</b> (Grating to Screen) using the slider provided in the control panel. Start with a distance of 20 cm.</li>
+                <li><b>Observation:</b> Switch on the Laser. You will observe a series of bright spots on the screen. The central spot is the zero-order (\(n=0\)).</li>
+                <li><b>Measurement:</b> For each order (\(n=1, 2, 3\)), measure the distance of the spot to the Right (<b>\(R\)</b>) and Left (<b>\(L\)</b>) of the central maximum using the screen scale.</li>
+                <li><b>Data Entry:</b> Enter the measured \(R\) and \(L\) values into the Observation Table. The system will automatically compute the mean distance \(X_m\).</li>
+                <li><b>Calculation:</b> The tool will determine the diffraction angle \(\theta_n\) and finally calculate the wavelength \(\lambda\) in <b>Angstrom units (Å)</b>.</li>
+                <li><b>Repetition:</b> Repeat the steps for different distances of \(D\) (e.g., 40 cm and 60 cm) to ensure the precision of your results.</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="panel no-print">
+        <h3>III. Observation Table</h3>
+        <table class="data-table">
+            <thead>
+                <tr class="header-gray">
+                    <th>\(D \text{ (cm)}\)</th>
+                    <th>Order (\(n\))</th>
+                    <th>\(R \text{ (cm)}\)</th>
+                    <th>\(L \text{ (cm)}\)</th>
+                    <th>\(X_m \text{ (cm)}\)</th>
+                    <th>\(\theta_n = \tan^{-1}(\frac{X_m}{D})\)</th>
+                    <th>\(\lambda = \frac{d \sin \theta_n}{n} \text{ (Å)}\)</th>
+                </tr>
+            </thead>
+            <tbody id="dataTableBody">
+                <tr><td rowspan="3"><input type="number" class="iD" value="20" oninput="autoCalculateAll()"></td><td>1</td><td><input type="number" class="iR" oninput="autoCalculateAll()"></td><td><input type="number" class="iL" oninput="autoCalculateAll()"></td><td><input type="number" class="rX" readonly></td><td><input type="number" class="rT" readonly></td><td><input type="number" class="rL" readonly></td></tr>
+                <tr><td>2</td><td><input type="number" class="iR" oninput="autoCalculateAll()"></td><td><input type="number" class="iL" oninput="autoCalculateAll()"></td><td><input type="number" class="rX" readonly></td><td><input type="number" class="rT" readonly></td><td><input type="number" class="rL" readonly></td></tr>
+                <tr><td>3</td><td><input type="number" class="iR" oninput="autoCalculateAll()"></td><td><input type="number" class="iL" oninput="autoCalculateAll()"></td><td><input type="number" class="rX" readonly></td><td><input type="number" class="rT" readonly></td><td><input type="number" class="rL" readonly></td></tr>
+                <tr><td rowspan="3"><input type="number" class="iD" value="40" oninput="autoCalculateAll()"></td><td>1</td><td><input type="number" class="iR" oninput="autoCalculateAll()"></td><td><input type="number" class="iL" oninput="autoCalculateAll()"></td><td><input type="number" class="rX" readonly></td><td><input type="number" class="rT" readonly></td><td><input type="number" class="rL" readonly></td></tr>
+                <tr><td>2</td><td><input type="number" class="iR" oninput="autoCalculateAll()"></td><td><input type="number" class="iL" oninput="autoCalculateAll()"></td><td><input type="number" class="rX" readonly></td><td><input type="number" class="rT" readonly></td><td><input type="number" class="rL" readonly></td></tr>
+                <tr><td>3</td><td><input type="number" class="iR" oninput="autoCalculateAll()"></td><td><input type="number" class="iL" oninput="autoCalculateAll()"></td><td><input type="number" class="rX" readonly></td><td><input type="number" class="rT" readonly></td><td><input type="number" class="rL" readonly></td></tr>
+            </tbody>
+            <tfoot>
+                <tr class="header-gray">
+                    <td colspan="6" style="text-align:right;">Mean Wavelength \(\text{Mean } \lambda \text{ (Å)}\):</td>
+                    <td><input type="number" id="finalMean" class="auto-res" readonly></td>
+                </tr>
+            </tfoot>
+        </table>
+        <div style="margin-top: 15px;">
+            <button onclick="exportCSV()" class="btn btn-green">Export Data to CSV</button>
+            <button onclick="resetExp()" class="btn btn-red">Reset Experiment</button>
+        </div>
+    </div>
+
+    <div class="panel no-print">
+        <h3>IV. Assessment Quiz</h3>
+        <div id="quizArea" class="quiz-grid"></div>
+        <button onclick="checkQuiz()" class="btn btn-blue">Submit Quiz & Generate Certificate</button>
+    </div>
+
+    <div id="certificate">
+        <div class="cert-header">
+            <img src="college logo.jpg" width="85">
+            <h2 style="color:var(--jce-blue); margin-top:10px;">JAIN COLLEGE OF ENGINEERING, BELAGAVI</h2>
+            <p>DEPARTMENT OF PHYSICS</p>
+            <h1 style="font-family: serif; font-size: 2.5rem; margin: 15px 0;">CERTIFICATE OF COMPLETION</h1>
+        </div>
+        <div class="cert-body">
+            <p>This is to certify that</p>
+            <h2 id="certName" style="text-decoration: underline; margin: 15px 0;"></h2>
+            <p>USN: <b id="certUSN"></b></p>
+            <p>has successfully completed the Virtual Experiment on:</p>
+            <h3>Determination of wavelength of LASER using Diffraction Grating</h3>
+            <p>Calculated Mean \(\lambda\): <b id="certLam"></b> <b>Å</b></p>
+        </div>
+        <div class="sig-block">
+            <div style="text-align:center;">
+                <span style="font-family: 'Brush Script MT', cursive; font-size: 20px; color: #555;">Verified Digitally</span><br>
+                ___________________<br>Faculty Signature
+            </div>
+            <div style="text-align:center;">
+                <b>Dr. Shivkumar Math</b><br>Professor & HOD, Physics
+            </div>
+        </div>
+        <div class="cert-verify">
+            DIGITAL VERIFICATION CODE: <span id="vCode"></span> | DATE: <span id="vDate"></span><br>
+            *This is an electronically generated certificate for virtual lab completion.*
+        </div>
+        <button onclick="window.print()" class="btn btn-gold no-print">Print Certificate</button>
+    </div>
+
+    <div class="faculty-footer no-print">
+        Dr. Shivkumar Math, Professor & HOD, Department of Physics, Jain College of Engineering, Belagavi.
+    </div>
+
+    <script>
+        const labC = document.getElementById('labCanvas');
+        const scrC = document.getElementById('screenCanvas');
+        const lCtx = labC.getContext('2d');
+        const sCtx = scrC.getContext('2d');
+
+        function autoCalculateAll() {
+            const body = document.getElementById('dataTableBody');
+            const rows = body.querySelectorAll('tr');
+            const N = parseFloat(document.getElementById('sN').value);
+            const d_const = 2.54 / N;
+            let currentD = 0;
+            rows.forEach((row) => {
+                const dInput = row.querySelector('.iD');
+                if (dInput) currentD = parseFloat(dInput.value);
+                const r = parseFloat(row.querySelector('.iR').value);
+                const l = parseFloat(row.querySelector('.iL').value);
+                const n = parseInt(row.cells[dInput ? 1 : 0].innerText);
+                if (currentD > 0 && r > 0 && l > 0) {
+                    const xm = (r + l) / 2;
+                    const theta = Math.atan(xm / currentD);
+                    const lambda = (d_const * Math.sin(theta) / n) * 1e8;
+                    row.querySelector('.rX').value = xm.toFixed(2);
+                    row.querySelector('.rT').value = (theta * 180 / Math.PI).toFixed(2);
+                    row.querySelector('.rL').value = Math.round(lambda);
+                }
+            });
+            const lams = Array.from(document.querySelectorAll('.rL')).map(i => parseFloat(i.value)).filter(v => !isNaN(v) && v > 0);
+            document.getElementById('finalMean').value = lams.length > 0 ? Math.round(lams.reduce((a, b) => a + b) / lams.length) : "";
+        }
+
+        function runSim() {
+            const D = parseFloat(document.getElementById('sD').value);
+            const N = parseFloat(document.getElementById('sN').value);
+            const W_nm = parseFloat(document.getElementById('sW').value);
+            document.getElementById('vD').innerText = D;
+            document.getElementById('vN').innerText = N;
+            document.getElementById('vW').innerText = W_nm;
+            let color = W_nm >= 600 ? "#ff0000" : `hsl(${(600-W_nm)*1.2 + 100}, 100%, 50%)`;
+            const d_cm = 2.54/N;
+            const W_cm = W_nm * 1e-7;
+
+            lCtx.clearRect(0,0,800,420);
+            lCtx.fillStyle = "#0a0a0a"; lCtx.fillRect(0,0,800,420);
+            lCtx.fillStyle = "#333"; lCtx.fillRect(40, 190, 70, 40); 
+            lCtx.fillStyle = "#fff"; lCtx.font = "10px Arial"; lCtx.fillText("LASER SOURCE", 40, 245);
+            lCtx.fillStyle = "#222"; lCtx.fillRect(720, 50, 20, 320); 
+            lCtx.fillText("SCREEN", 715, 385);
+            const gratingX = 720 - (D * 6); 
+            lCtx.fillStyle = "cyan"; lCtx.globalAlpha = 0.4;
+            lCtx.fillRect(gratingX, 160, 12, 100);
+            lCtx.globalAlpha = 1.0;
+            lCtx.fillStyle = "#fff"; lCtx.fillText("GRATING", gratingX-15, 155);
+            lCtx.shadowBlur = 15; lCtx.shadowColor = color; lCtx.strokeStyle = color; lCtx.lineWidth = 2;
+            lCtx.beginPath(); lCtx.moveTo(110, 210); lCtx.lineTo(gratingX, 210); lCtx.stroke(); 
+
+            let recorderText = "<b>AUTO RECORDER (cm)</b><br>";
+            for(let n=-3; n<=3; n++) {
+                let theta = Math.asin((n * W_cm) / d_cm);
+                if(isNaN(theta)) continue;
+                let xm = D * Math.tan(theta);
+                lCtx.globalAlpha = 1.0 - (Math.abs(n)*0.2);
+                lCtx.beginPath(); lCtx.moveTo(gratingX+12, 210); lCtx.lineTo(720, 210 + (xm * 3)); lCtx.stroke();
+                if(n > 0) recorderText += `n=${n}: R=${xm.toFixed(2)}, L=${xm.toFixed(2)}<br>`;
+            }
+            document.getElementById('autoRecorder').innerHTML = recorderText;
+
+            sCtx.clearRect(0,0,800,420);
+            const midX = 400, midY = 210;
+            
+            sCtx.strokeStyle = "#ffffff"; sCtx.lineWidth = 1; sCtx.beginPath();
+            sCtx.moveTo(50, midY + 50); sCtx.lineTo(750, midY + 50);
+            for(let i=-20; i<=20; i++) {
+                let x = midX + (i * 15);
+                let h = (i % 5 === 0) ? 15 : 7;
+                sCtx.moveTo(x, midY + 50); sCtx.lineTo(x, midY + 50 + h);
+                if(i % 5 === 0) {
+                    sCtx.fillStyle = "#ffffff"; sCtx.font = "10px Arial";
+                    sCtx.fillText(i + " cm", x - 10, midY + 80);
+                }
+            }
+            sCtx.stroke();
+
+            for(let n=-4; n<=4; n++) {
+                let theta = Math.asin((n*W_cm)/d_cm);
+                if(isNaN(theta)) continue;
+                let xm = D * Math.tan(theta);
+                let xPos = midX + (xm * 15);
+                sCtx.shadowBlur = 15; sCtx.shadowColor = color; sCtx.fillStyle = color;
+                sCtx.beginPath(); sCtx.arc(xPos, midY, 10-Math.abs(n)*1.5, 0, Math.PI*2); sCtx.fill();
+                sCtx.shadowBlur = 0; sCtx.fillStyle = "#0f0"; sCtx.font = "bold 11px Courier New";
+                sCtx.fillText("n=" + n, xPos - 10, midY - 25);
+            }
+        }
+
+        function resetExp() {
+            if(confirm("Are you sure you want to clear all data?")) {
+                document.querySelectorAll('input[type="number"]').forEach(input => { if(!input.classList.contains('iD')) input.value = ""; });
+                document.getElementById('finalMean').value = "";
+            }
+        }
+
+        const quizData = [
+            {q: "Which property of light is studied here?", o: ["Polarization", "Interference", "Diffraction", "Refraction"], a: 2},
+            {q: "Unit of Wavelength used in calculation is:", o: ["Meter", "Angstrom (Å)", "Hertz", "Newton"], a: 1},
+            {q: "Grating constant 'd' formula is:", o: ["N/2.54", "1/N", "2.54/N", "D/Xm"], a: 2},
+            {q: "If Distance D increases, the fringe width:", o: ["Increases", "Decreases", "Remains same", "Becomes zero"], a: 0},
+            {q: "A laser is a source of ______ light:", o: ["Incoherent", "White", "Monochromatic", "Diffuse"], a: 2},
+            {q: "What is the order of the central bright spot?", o: ["n = 1", "n = 0", "n = infinity", "n = -1"], a: 1},
+            {q: "Diffraction occurs because light behaves as a:", o: ["Particle", "Wave", "Solid", "Gas"], a: 1},
+            {q: "If you use a blue laser instead of red, diffraction angle will:", o: ["Increase", "Decrease", "Stay same", "Disappear"], a: 1},
+            {q: "The slits in a grating are separated by a distance called:", o: ["Grating Constant", "Laser Pitch", "Wavelength", "Order"], a: 0},
+            {q: "For a given order, if D is 50cm and Xm is 50cm, theta is:", o: ["30°", "45°", "60°", "90°"], a: 1}
+        ];
+
+        function initQuiz() {
+            const qa = document.getElementById('quizArea');
+            quizData.forEach((item, i) => {
+                let html = `<div class="quiz-item"><p>${i+1}. ${item.q}</p><div class="option-container">`;
+                item.o.forEach((opt, j) => { html += `<label class="option"><input type="radio" name="q${i}" value="${j}"> ${opt}</label>`; });
+                qa.innerHTML += html + `</div></div>`;
+            });
+        }
+
+        function checkQuiz() {
+            let s = 0;
+            quizData.forEach((item, i) => {
+                const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                if (sel && parseInt(sel.value) === item.a) s++;
+            });
+            if (s >= 8) {
+                const n = prompt("Passed! Score: "+s+"/10. Enter Name:");
+                const u = prompt("Enter USN:");
+                if(n && u) {
+                    document.getElementById('certName').innerText = n.toUpperCase();
+                    document.getElementById('certUSN').innerText = u.toUpperCase();
+                    document.getElementById('certLam').innerText = document.getElementById('finalMean').value || "---";
+                    document.getElementById('vCode').innerText = "JCE-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+                    document.getElementById('vDate').innerText = new Date().toLocaleDateString();
+                    document.getElementById('certificate').style.display = 'block';
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
+            } else { alert("Score: "+s+"/10. You need at least 8 correct answers."); }
+        }
+
+        function exportCSV() {
+            let c = "D(cm),Order(n),R(cm),L(cm),Xm(cm),Theta,Lambda(A)\n";
+            document.querySelectorAll("#dataTableBody tr").forEach(tr => {
+                c += Array.from(tr.querySelectorAll("input, td")).map(el => el.value || el.innerText).join(",") + "\n";
+            });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([c], { type: 'text/csv' })); a.download = 'Laser_Lab_Data.csv'; a.click();
+        }
+
+        labC.width = 800; labC.height = 420; scrC.width = 800; scrC.height = 420;
+        initQuiz(); runSim();
+    </script>
+</body>
+</html>
